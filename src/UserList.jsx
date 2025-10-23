@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { db } from './firebase';
-import { collection, getDocs, deleteDoc, doc } from 'firebase/firestore';
+import axios from 'axios';
 
 const UserList = ({ token, role }) => {
   const [users, setUsers] = useState([]);
@@ -10,25 +9,28 @@ const UserList = ({ token, role }) => {
   useEffect(() => {
     const fetchUsers = async () => {
       try {
-        const querySnapshot = await getDocs(collection(db, 'users'));
-        const usersList = querySnapshot.docs.map(doc => ({ id: doc.id, ...doc.data() }));
-        setUsers(usersList);
+        const response = await axios.get('https://lit-sea-66725-e16b11feba54.herokuapp.com/users', {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        setUsers(response.data);
         setLoading(false);
       } catch (error) {
-        setError(error.message);
+        setError(error.response ? error.response.data.message : error.message);
         setLoading(false);
       }
     };
 
     fetchUsers();
-  }, []);
+  }, [token]);
 
-  const handleDeleteUser = async (userId) => {
+  const handleDeleteUser = async (username) => {
     try {
-      await deleteDoc(doc(db, 'users', userId));
-      setUsers(users.filter(user => user.id !== userId));
+      await axios.delete(`https://lit-sea-66725-e16b11feba54.herokuapp.com/users/${username}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      });
+      setUsers(users.filter(user => user.username !== username));
     } catch (error) {
-      setError(error.message);
+      setError(error.response ? error.response.data.message : error.message);
     }
   };
 
@@ -50,10 +52,10 @@ const UserList = ({ token, role }) => {
         <h2 className="text-3xl font-bold mb-6 text-center text-gray-800">Resident's Directory</h2>
         <ul className="space-y-4">
           {users.map(user => (
-            <li key={user.id} className="flex justify-between items-center bg-gray-100 p-4 rounded-lg shadow-sm">
+            <li key={user.username} className="flex justify-between items-center bg-gray-100 p-4 rounded-lg shadow-sm">
               <span className="text-gray-700">{user.username} ({user.role})</span>
-              <button 
-                onClick={() => handleDeleteUser(user.id)} 
+              <button
+                onClick={() => handleDeleteUser(user.username)}
                 className="bg-red-600 hover:bg-red-700 text-white font-bold py-1 px-3 rounded transition-colors duration-200"
               >
                 Delete
